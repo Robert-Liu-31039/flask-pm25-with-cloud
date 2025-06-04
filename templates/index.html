@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PM2.5 資料展示</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+</head>
+
+<body>
+  <section class="section">
+    <div class="container">
+      <h1 class="title has-text-centered">細懸浮微粒資料（PM2.5）</h1>
+
+      {% if not columns %}
+      <h2 class="subtitle has-text-danger has-text-centered">資料庫連接失敗...</h2>
+      {% else %}
+      <h3 class="has-text-centered mb-4">最新更新時間: {{ datas[0][4] }}</h3>
+
+      <div class="buttons is-centered mb-4">
+        <a class="button is-link" href="/update-db">更新資料庫</a>
+        <a class="button is-light" href="/pm25-site">詳細站點資訊</a>
+      </div>
+
+      <form action="/" method="GET" class="has-text-centered mb-5">
+        <div class="field is-grouped is-justify-content-center">
+          <label class="label mr-2" for="county">選取縣市</label>
+          <div class="select mr-2">
+            <select name="county" id="county">
+              <option value="ALL">全部縣市</option>
+              {% for county in counties %}
+              <option value="{{county}}" {% if selected_county==county %} selected {% endif %}>{{county}}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="control">
+            <button class="button is-info">查詢</button>
+          </div>
+        </div>
+      </form>
+
+      <h2 class="subtitle has-text-success has-text-centered">選擇縣市：{{ selected_county }}</h2>
+
+      <div id="chart-data" data-labels='{{ x_data | tojson }}' data-values='{{ y_data | tojson }}'></div>
+
+      <div class="columns is-variable is-6 is-multiline mt-5">
+        <!-- 圖表 -->
+        <div class="column is-full-mobile is-half-tablet">
+          <div id="main" style="width:100%; height:400px;"></div>
+        </div>
+
+        <!-- 表格 -->
+        <div class="column is-full-mobile is-half-tablet">
+          <div class="table-container">
+            <table class="table is-bordered is-striped is-narrow is-hoverable is-fullwidth">
+              <thead>
+                <tr>
+                  {% for col in columns[1:] %}
+                  <th>{{ col }}</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in datas %}
+                <tr>
+                  {% for data in row[1:] %}
+                  <td>{{ data }}</td>
+                  {% endfor %}
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <script>
+    const chartData = document.querySelector("#chart-data");
+    const labels = JSON.parse(chartData.dataset.labels);
+    const values = JSON.parse(chartData.dataset.values);
+
+    const myChart = echarts.init(document.getElementById("main"));
+    const option = {
+      title: { text: "PM2.5 數據圖" },
+      tooltip: {},
+      legend: { data: ["PM25"] },
+      xAxis: { data: labels },
+      dataZoom: [{ type: "slider", start: 0, end: 100 }],
+      yAxis: {},
+      series: [{
+        name: "PM25",
+        type: "bar",
+        data: values,
+        itemStyle: { color: "#00bfff" }
+      }]
+    };
+
+    myChart.setOption(option);
+  </script>
+</body>
+
+</html>

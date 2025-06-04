@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>站點 PM2.5 資訊頁</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+</head>
+
+<body>
+  <section class="section">
+    <div class="container">
+
+      <h1 class="title has-text-centered">站點細懸浮微粒資料（PM2.5）</h1>
+
+      <!-- 縣市與站點選擇 -->
+      <div class="columns is-multiline is-variable is-4 mb-4">
+        <div class="column is-6">
+          <h3 class="subtitle is-6">選擇縣市</h3>
+          <div class="select is-fullwidth">
+            <select name="county" id="county">
+              {% for county in counties %}
+              <option value="{{county}}" {% if selected_county==county %} selected {% endif %}>{{county}}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="column is-6">
+          <h3 class="subtitle is-6">選擇站點</h3>
+          <div class="select is-fullwidth">
+            <select name="site" id="site">
+              <!-- 由 JavaScript 動態填入 -->
+            </select>
+          </div>
+        </div>
+
+        <div class="column is-12 has-text-centered">
+          <button class="button is-info btn-update" onclick="query()">查詢</button>
+        </div>
+      </div>
+
+      <h2 class="subtitle has-text-centered" id="siteName"></h2>
+
+      <!-- 圖表 -->
+      <div id="main" style="width: 100%; height: 400px;" class="mb-5"></div>
+
+      <!-- 高低數值面板 -->
+      <div id="panel" class="notification is-light" style="display: none;">
+        <h3 class="has-text-black">
+          Higher:
+          <span class="has-text-danger pm25Higher">--</span><br>
+          Lower:
+          <span class="has-text-link pm25Lower">--</span>
+        </h3>
+      </div>
+
+      <div class="has-text-centered mt-5">
+        <a href="/" class="button is-link is-light">回首頁</a>
+      </div>
+
+    </div>
+  </section>
+
+  <script>
+    const countyEl = document.querySelector("#county");
+    const siteEl = document.querySelector("#site");
+    const chart1 = echarts.init(document.getElementById('main'));
+    const panelEl = document.getElementById('panel');
+    const btnQueryEl = document.querySelector('.btn-update');
+
+    function updateSite() {
+      btnQueryEl.innerText = "取得站點...";
+      let county = countyEl.value;
+      fetch(`/pm25-county-site?county=${county}`)
+        .then(res => res.json())
+        .then(data => {
+          btnQueryEl.innerText = "查詢";
+          siteEl.innerHTML = "";
+          data.forEach(site => {
+            const opt = document.createElement("option");
+            opt.value = site;
+            opt.textContent = site;
+            siteEl.appendChild(opt);
+          });
+        });
+    }
+
+    function drawChart(chart, site, labels, values) {
+      const option = {
+        title: { text: `${site} PM2.5 數據圖`, left: 'center' },
+        tooltip: {},
+        legend: { data: ['PM25'], top: 30 },
+        xAxis: { data: labels },
+        dataZoom: [{ type: 'slider', start: 0, end: 100 }],
+        yAxis: {},
+        series: [{
+          name: 'PM25',
+          type: 'line',
+          smooth: true,
+          data: values
+        }]
+      };
+      chart.setOption(option);
+    }
+
+    function query() {
+      let county = countyEl.value;
+      let site = siteEl.value;
+      panelEl.style.display = "block";
+      document.querySelector("#siteName").textContent = site;
+      fetch(`/pm25-data-site?county=${county}&site=${site}`)
+        .then(res => res.json())
+        .then(data => {
+          drawChart(chart1, data.site, data.x_data, data.y_data);
+          document.querySelector(".pm25Higher").innerText = data.higher;
+          document.querySelector(".pm25Lower").innerText = data.lower;
+        });
+    }
+
+    // 初始縣市改變時自動載入站點
+    countyEl.addEventListener("change", updateSite);
+    updateSite();
+  </script>
+</body>
+
+</html>
