@@ -1,0 +1,13 @@
+name: Update PM2.5 DB
+
+on:
+  schedule:
+    - cron: '30 15 * * *'  # 每天 23:30 台灣時間 (UTC+8)
+  workflow_dispatch:       # 可手動執行
+
+jobs:
+  curl-update-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call /update-db endpoint
+        run: curl -s https://flask-pm25-with-cloud.onrender.com/update-db

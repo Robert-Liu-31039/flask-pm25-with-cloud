@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request
-from datetime import datetime
+from datetime import datetime, timedelta
 import pymysql
 import pandas as pd
 from pm25 import (
@@ -144,7 +144,11 @@ def get_bmi():
 # 更新資料庫
 @app.route("/update-db")
 def update_pm25_db():
-    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # 因為上雲端後，雲端的 Server 讀取的是 utc 的時間，
+    # 而台灣是 utc+8 的時間，
+    # 所以要使用 datetime.now()+timedelta(hours=8) 來取得台灣時間
+    nowtime = (datetime.now() + timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
     count, message = update_db()
     info = {"時間": nowtime, "更新筆數": count, "結果": message}
 
@@ -206,4 +210,4 @@ def pm25_county_site():
 # 就會把以下的程式自動 run 起來了(誤跑)!
 if __name__ == "__main__":
     # 讓 Flask Server run 起來
-    app.run(debug=True)
+    app.run(debug=False)
